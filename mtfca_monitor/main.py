@@ -197,12 +197,9 @@ def cmd_monitor(config, db):
 def main():
     parser = argparse.ArgumentParser(description="MTFCA Forum Monitor")
     parser.add_argument("--config", default="config.yaml", help="Path to config file")
-
-    subparsers = parser.add_subparsers(dest="command", help="Command to run")
-    subparsers.add_parser("run", help="Single crawl + alerts, then exit")
-    subparsers.add_parser("digest", help="Force-generate a digest now")
-    subparsers.add_parser("stats", help="Print current stats to console")
-    subparsers.add_parser("monitor", help="Continuous 15-minute loop (default)")
+    parser.add_argument("command", nargs="?", default="monitor",
+                        choices=["run", "digest", "stats", "monitor"],
+                        help="Command to run (default: monitor)")
 
     args = parser.parse_args()
 
