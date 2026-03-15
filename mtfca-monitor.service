@@ -1,0 +1,15 @@
+[Unit]
+Description=MTFCA Forum Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/hobbies/services/mtfca-monitor
+ExecStart=/opt/hobbies/services/mtfca-monitor/venv/bin/python -m mtfca_monitor.main monitor --config /opt/hobbies/services/mtfca-monitor/config.yaml
+Restart=on-failure
+RestartSec=60
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,53 @@
+forum:
+  base_url: "https://www.mtfca.com/phpBB3"
+  forum_id: 2
+  pages_to_scan: 2
+  request_delay: 2.0
+
+schedule:
+  poll_interval_minutes: 15
+
+alerts:
+  keywords:
+    - "for sale"
+    - "speedster"
+    - "Ruckstell"
+    - "wanted"
+  watch_users:
+    - "AdminJeff"
+
+digest:
+  frequency: "daily"         # "daily" or "weekly"
+  time: "20:00"              # 24hr format, when to send digest
+  trending_count: 10
+  trending_lookback_hours: 24
+
+database:
+  path: "mtfca_monitor.db"   # On VPS: /opt/hobbies/data/mtfca-monitor/mtfca_monitor.db
+
+output:
+  console:
+    enabled: true
+    color: true
+
+  html_file:
+    enabled: true
+    output_dir: "./output"
+    auto_open: false
+
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    smtp_user: "you@gmail.com"
+    smtp_password: "your-app-password"
+    from_address: "you@gmail.com"
+    to_addresses:
+      - "you@gmail.com"
+    send_immediate_alerts: true   # instant email on keyword match
+    send_digest: true             # daily/weekly digest email
+
+  webhook:
+    enabled: false
+    url: "https://discord.com/api/webhooks/XXXX/YYYY"
+    platform: "discord"      # "discord" or "slack"

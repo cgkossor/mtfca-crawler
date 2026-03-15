@@ -1,0 +1,35 @@
+# Secrets
+config.yaml
+*.key
+*.key.pub
+
+# Data / runtime state
+*.db
+*.db-shm
+*.db-wal
+output/
+monitor.log
+
+# Deploy scripts (contain server info)
+deploy.ps1
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# IDE & OS
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test scripts
+test_email.py
+
+# Internal docs
+VPS_STRUCTURE.md
+MTFCA_FORUM_MONITOR_SPEC.md
+
+# Claude Code
+.claude/
