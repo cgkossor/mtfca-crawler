@@ -6,7 +6,7 @@ Monitors the [Model T Ford Club of America phpBB3 forum](https://www.mtfca.com/p
 
 - **Keyword Alerts** — Instant email when a keyword is mentioned in any post or topic title (case-insensitive)
 - **Trending Detection** — Tracks view/reply velocity to surface hot threads
-- **Daily/Weekly Digest** — HTML email with trending topics, new threads, most discussed, and stats
+- **Daily/Weekly Digest** — HTML email with trending topics, new threads, most discussed, and stats (all times in ET)
 - **Incremental Crawling** — Only fetches threads with new activity, minimizing requests
 - **SQLite Storage** — Full history of topics, posts, and engagement snapshots
 
@@ -42,6 +42,9 @@ python -m mtfca_monitor.main digest
 
 # Continuous monitoring loop — runs every 15 minutes (default)
 python -m mtfca_monitor.main monitor
+
+# Use --data-dir to separate data from code (recommended for VPS)
+python -m mtfca_monitor.main --data-dir /path/to/data monitor
 ```
 
 ### First Run
@@ -69,7 +72,7 @@ alerts:
 
 digest:
   frequency: "daily"     # "daily" or "weekly"
-  time: "20:00"          # When to send digest (24hr format)
+  time: "20:00"          # When to send digest (24hr ET — Eastern Time)
 
 output:
   email:

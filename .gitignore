@@ -30,6 +30,7 @@ test_email.py
 # Internal docs
 VPS_STRUCTURE.md
 MTFCA_FORUM_MONITOR_SPEC.md
+CHANGELOG.md
 
 # Claude Code
 .claude/
