@@ -8,6 +8,7 @@ import threading
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -78,7 +79,7 @@ def check_digest_due(config, db):
     frequency = digest_cfg.get("frequency", "daily")
     digest_time = digest_cfg.get("time", "18:00")
 
-    now = datetime.now()
+    now = datetime.now(ZoneInfo("America/New_York"))
 
     # Parse configured time
     try:
