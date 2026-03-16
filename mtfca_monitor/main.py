@@ -98,6 +98,8 @@ def check_digest_due(config, db):
         return True
 
     last_dt = datetime.fromisoformat(last["generated_at"])
+    if last_dt.tzinfo is None:
+        last_dt = last_dt.replace(tzinfo=ZoneInfo("UTC"))
     if frequency == "daily":
         return (now - last_dt) > timedelta(hours=20)
     elif frequency == "weekly":
@@ -119,7 +121,7 @@ def run_digest(config, db, data_dir=None):
     output_dir = config.get("output", {}).get("html_file", {}).get("output_dir", "./output")
     if data_dir:
         output_dir = str(Path(data_dir) / "output")
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
     filepath = str(Path(output_dir) / f"digest_{date_str}.html")
     db.insert_digest_log(digest.digest_type, filepath)
 

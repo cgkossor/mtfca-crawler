@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class StatsEngine:
             first_seen = row["first_seen"]
             if first_seen:
                 first_seen_dt = datetime.fromisoformat(first_seen)
-                cutoff = datetime.utcnow() - timedelta(hours=lookback)
+                cutoff = datetime.now(ZoneInfo("UTC")) - timedelta(hours=lookback)
                 if first_seen_dt > cutoff:
                     is_new = True
                     hot_score *= 1.5
