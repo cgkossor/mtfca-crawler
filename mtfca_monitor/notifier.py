@@ -7,10 +7,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import requests
 
 logger = logging.getLogger(__name__)
+
+ET = ZoneInfo("America/New_York")
 
 
 class Notifier:
@@ -89,7 +92,7 @@ class Notifier:
         output_dir = Path(self.output_cfg.get("html_file", {}).get("output_dir", "./output"))
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        date_str = datetime.utcnow().strftime("%Y-%m-%d")
+        date_str = datetime.now(ET).strftime("%Y-%m-%d")
         filepath = output_dir / f"digest_{date_str}.html"
         filepath.write_text(digest.html, encoding="utf-8")
         logger.info("Digest saved to %s", filepath)
@@ -109,7 +112,7 @@ class Notifier:
         with open(log_path, "a", encoding="utf-8") as f:
             for alert in alerts:
                 entry = {
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(ET).isoformat(),
                     "keyword": alert.keyword,
                     "match_type": alert.match_type,
                     "topic_title": alert.topic_title,
@@ -171,7 +174,7 @@ class Notifier:
 
     def send_email_digest(self, digest):
         """Send the full digest as an email."""
-        date_str = datetime.utcnow().strftime("%Y-%m-%d")
+        date_str = datetime.now(ET).strftime("%Y-%m-%d")
         subject = f"MTFCA Forum Digest — {date_str}"
         self._send_email(subject, digest.html, digest.text)
 

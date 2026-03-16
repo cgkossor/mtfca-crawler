@@ -118,7 +118,7 @@ def run_digest(config, db, data_dir=None):
     output_dir = config.get("output", {}).get("html_file", {}).get("output_dir", "./output")
     if data_dir:
         output_dir = str(Path(data_dir) / "output")
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    date_str = datetime.now().strftime("%Y-%m-%d")
     filepath = str(Path(output_dir) / f"digest_{date_str}.html")
     db.insert_digest_log(digest.digest_type, filepath)
 
@@ -138,7 +138,7 @@ def cmd_digest(config, db, data_dir=None):
 def cmd_stats(config, db):
     """Print current stats to console."""
     stats_engine = StatsEngine(config, db)
-    now = datetime.utcnow()
+    now = datetime.now()
     since_24h = (now - timedelta(hours=24)).isoformat()
 
     print(f"\n{'=' * 50}")
