@@ -27,7 +27,7 @@ def load_config(path):
     return config
 
 
-def setup_logging():
+def setup_logging(data_dir=None):
     root = logging.getLogger("mtfca_monitor")
     root.setLevel(logging.DEBUG)
 
@@ -38,7 +38,8 @@ def setup_logging():
     root.addHandler(ch)
 
     # File handler — DEBUG, rotating
-    fh = RotatingFileHandler("monitor.log", maxBytes=5 * 1024 * 1024, backupCount=3)
+    log_path = Path(data_dir) / "monitor.log" if data_dir else Path("monitor.log")
+    fh = RotatingFileHandler(str(log_path), maxBytes=5 * 1024 * 1024, backupCount=3)
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
     root.addHandler(fh)
@@ -104,7 +105,7 @@ def check_digest_due(config, db):
     return False
 
 
-def run_digest(config, db):
+def run_digest(config, db, data_dir=None):
     """Generate and send a digest."""
     stats_engine = StatsEngine(config, db)
     generator = DigestGenerator(config, db, stats_engine)
@@ -115,6 +116,8 @@ def run_digest(config, db):
 
     # Save filepath if HTML was generated
     output_dir = config.get("output", {}).get("html_file", {}).get("output_dir", "./output")
+    if data_dir:
+        output_dir = str(Path(data_dir) / "output")
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     filepath = str(Path(output_dir) / f"digest_{date_str}.html")
     db.insert_digest_log(digest.digest_type, filepath)
@@ -127,9 +130,9 @@ def cmd_run(config, db):
     run_once(config, db)
 
 
-def cmd_digest(config, db):
+def cmd_digest(config, db, data_dir=None):
     """Force-generate a digest now."""
-    run_digest(config, db)
+    run_digest(config, db, data_dir=data_dir)
 
 
 def cmd_stats(config, db):
@@ -166,7 +169,7 @@ def cmd_stats(config, db):
     print()
 
 
-def cmd_monitor(config, db):
+def cmd_monitor(config, db, data_dir=None):
     """Continuous monitoring loop."""
     interval = config.get("schedule", {}).get("poll_interval_minutes", 15)
     shutdown = threading.Event()
@@ -185,7 +188,7 @@ def cmd_monitor(config, db):
             run_once(config, db)
 
             if check_digest_due(config, db):
-                run_digest(config, db)
+                run_digest(config, db, data_dir=data_dir)
         except Exception as e:
             logger.error("Error in monitor loop: %s", e, exc_info=True)
 
@@ -197,13 +200,20 @@ def cmd_monitor(config, db):
 def main():
     parser = argparse.ArgumentParser(description="MTFCA Forum Monitor")
     parser.add_argument("--config", default="config.yaml", help="Path to config file")
+    parser.add_argument("--data-dir", default=None,
+                        help="Directory for persistent data (db, logs, output). "
+                             "Keeps data separate from the code directory.")
     parser.add_argument("command", nargs="?", default="monitor",
                         choices=["run", "digest", "stats", "monitor"],
                         help="Command to run (default: monitor)")
 
     args = parser.parse_args()
 
-    setup_logging()
+    data_dir = args.data_dir
+    if data_dir:
+        Path(data_dir).mkdir(parents=True, exist_ok=True)
+
+    setup_logging(data_dir=data_dir)
 
     # Load config
     config_path = args.config
@@ -213,9 +223,13 @@ def main():
 
     config = load_config(config_path)
 
-    # Initialize database
+    # Initialize database — use data_dir if provided, else fall back to config
     db_path = config.get("database", {}).get("path", "mtfca_monitor.db")
+    if data_dir:
+        db_path = str(Path(data_dir) / Path(db_path).name)
     db = Database(db_path)
+
+    logger.info("Database: %s", db_path)
 
     try:
         command = args.command or "monitor"
@@ -223,11 +237,11 @@ def main():
         if command == "run":
             cmd_run(config, db)
         elif command == "digest":
-            cmd_digest(config, db)
+            cmd_digest(config, db, data_dir=data_dir)
         elif command == "stats":
             cmd_stats(config, db)
         elif command == "monitor":
-            cmd_monitor(config, db)
+            cmd_monitor(config, db, data_dir=data_dir)
         else:
             parser.print_help()
     finally:
