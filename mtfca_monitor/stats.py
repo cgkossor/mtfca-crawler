@@ -67,6 +67,8 @@ class StatsEngine:
             first_seen = row["first_seen"]
             if first_seen:
                 first_seen_dt = datetime.fromisoformat(first_seen)
+                if first_seen_dt.tzinfo is None:
+                    first_seen_dt = first_seen_dt.replace(tzinfo=ZoneInfo("UTC"))
                 cutoff = datetime.now(ZoneInfo("UTC")) - timedelta(hours=lookback)
                 if first_seen_dt > cutoff:
                     is_new = True
