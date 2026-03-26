@@ -47,6 +47,10 @@ output:
     send_immediate_alerts: true   # instant email on keyword match
     send_digest: true             # daily/weekly digest email
 
+  discord:
+    enabled: false
+    webhook_url: "https://discord.com/api/webhooks/XXXX/YYYY"
+
   webhook:
     enabled: false
     url: "https://discord.com/api/webhooks/XXXX/YYYY"

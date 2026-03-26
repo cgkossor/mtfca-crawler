@@ -1,8 +1,10 @@
-"""Multi-channel notification output: console, HTML file, email, webhook."""
+"""Multi-channel notification output: console, HTML file, email, Discord, webhook."""
 
 import json
 import logging
 import smtplib
+import time
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -35,6 +37,9 @@ class Notifier:
         if self._email_enabled() and self.output_cfg["email"].get("send_immediate_alerts", True):
             self.send_email_alerts(alerts)
 
+        if self._discord_enabled():
+            self.send_discord_alerts(alerts)
+
         if self._webhook_enabled():
             self.send_webhook_alerts(alerts)
 
@@ -52,6 +57,9 @@ class Notifier:
 
         if self._email_enabled() and self.output_cfg["email"].get("send_digest", True):
             self.send_email_digest(digest)
+
+        if self._discord_enabled():
+            self.send_discord_digest(digest)
 
         if self._webhook_enabled():
             self.send_webhook_digest(digest)
@@ -202,6 +210,94 @@ class Notifier:
         except Exception as e:
             logger.error("Failed to send email: %s", e)
 
+    # --- Discord ---
+
+    def send_discord_alerts(self, alerts):
+        """Send immediate alerts to Discord via webhook."""
+        discord_cfg = self.output_cfg.get("discord", {})
+
+        lines = [f"MTFCA Alert: {len(alerts)} keyword match{'es' if len(alerts) != 1 else ''}\n"]
+        for alert in alerts:
+            tag = "ALERT" if alert.match_type == "keyword" else "WATCH"
+            lines.append(f"[{tag}] [{alert.keyword}] {alert.topic_title}")
+            lines.append(f"  by {alert.author}: {_truncate(alert.snippet, 150)}")
+            lines.append(f"  {alert.url}\n")
+
+        subject = f"MTFCA Alert — {len(alerts)} match{'es' if len(alerts) != 1 else ''}"
+        self._send_discord(subject, "\n".join(lines), discord_cfg)
+
+    def send_discord_digest(self, digest):
+        """Send digest to Discord, splitting if needed."""
+        discord_cfg = self.output_cfg.get("discord", {})
+        date_str = datetime.now(ET).strftime("%Y-%m-%d")
+        subject = f"MTFCA Forum Digest — {date_str}"
+        self._send_discord(subject, digest.text, discord_cfg)
+
+    @staticmethod
+    def _split_discord_message(subject, message, limit=1900):
+        """Split message into Discord-safe chunks (2000 char limit)."""
+        header = f"**{subject}**\n"
+        overhead = len(header) + 8  # ```\n ... \n```
+        available = limit - overhead
+
+        if len(message) <= available:
+            return [f"{header}```\n{message}\n```"]
+
+        chunks = []
+        lines = message.split("\n")
+        current = []
+        current_len = 0
+        for line in lines:
+            if current_len + len(line) + 1 > available:
+                if current:
+                    chunks.append("\n".join(current))
+                current = [line]
+                current_len = len(line)
+            else:
+                current.append(line)
+                current_len += len(line) + 1
+        if current:
+            chunks.append("\n".join(current))
+
+        result = []
+        for i, chunk in enumerate(chunks):
+            prefix = header if i == 0 else f"**{subject} (cont.)**\n"
+            result.append(f"{prefix}```\n{chunk}\n```")
+        return result
+
+    def _send_discord(self, subject, message, discord_cfg, max_retries=3):
+        """Send a message to Discord via webhook. Splits long messages automatically."""
+        url = discord_cfg.get("webhook_url", "")
+        if not url:
+            return False
+        chunks = self._split_discord_message(subject, message)
+
+        for chunk in chunks:
+            payload = json.dumps({"content": chunk})
+            for attempt in range(1, max_retries + 1):
+                try:
+                    req = urllib.request.Request(
+                        url,
+                        data=payload.encode("utf-8"),
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        logger.info("Discord notification sent (HTTP %s)", resp.status)
+                    break
+                except Exception as e:
+                    if attempt < max_retries:
+                        delay = 5 * (2 ** (attempt - 1))
+                        logger.warning(
+                            "Discord send failed (attempt %d/%d): %s. Retrying in %ds...",
+                            attempt, max_retries, e, delay,
+                        )
+                        time.sleep(delay)
+                    else:
+                        logger.error("Discord send failed after %d attempts: %s", max_retries, e)
+                        return False
+        return True
+
     # --- Webhook ---
 
     def send_webhook_alerts(self, alerts):
@@ -278,6 +374,9 @@ class Notifier:
 
     def _email_enabled(self):
         return self.output_cfg.get("email", {}).get("enabled", False)
+
+    def _discord_enabled(self):
+        return self.output_cfg.get("discord", {}).get("enabled", False)
 
     def _webhook_enabled(self):
         return self.output_cfg.get("webhook", {}).get("enabled", False)
